@@ -1,5 +1,6 @@
 package sandeep.kumar.runningapp
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
@@ -7,6 +8,7 @@ import androidx.navigation.fragment.findNavController
 import androidx.navigation.ui.setupWithNavController
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.android.synthetic.main.activity_main.*
+import sandeep.kumar.runningapp.util.Constants.ACTION_SHOW_TRACKING_FRAGMENT
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
@@ -14,6 +16,8 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        navigateToTrackingFragmentNeeded(intent)
 
         setSupportActionBar(toolbar)
 
@@ -28,4 +32,17 @@ class MainActivity : AppCompatActivity() {
                 }
             }
     }
+
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        navigateToTrackingFragmentNeeded(intent)
+    }
+
+    private fun navigateToTrackingFragmentNeeded(intent: Intent?) {
+        if (intent?.action == ACTION_SHOW_TRACKING_FRAGMENT) {
+            navHostFragment.findNavController().navigate(R.id.action_global_trackingFragment)
+
+        }
+    }
+
 }
