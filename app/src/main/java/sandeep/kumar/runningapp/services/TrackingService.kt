@@ -27,10 +27,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import sandeep.kumar.runningapp.MainActivity
 import sandeep.kumar.runningapp.R
 import sandeep.kumar.runningapp.util.Constants.ACTION_PAUSE_SERVICE
-import sandeep.kumar.runningapp.util.Constants.ACTION_SHOW_TRACKING_FRAGMENT
 import sandeep.kumar.runningapp.util.Constants.ACTION_START_OR_RESUME_SERVICE
 import sandeep.kumar.runningapp.util.Constants.ACTION_STOP_SERVICE
 import sandeep.kumar.runningapp.util.Constants.FASTEST_LOCATION_UPDATE_INTERVAL
@@ -51,6 +49,7 @@ typealias Polylines = MutableList<Polyline>
 class TrackingService : LifecycleService() {
 
     var isFirstRun = true
+    var serviceKill = false
 
 
     @Inject
@@ -59,9 +58,9 @@ class TrackingService : LifecycleService() {
     private val timeRunInSeconds = MutableLiveData<Long>()
 
     @Inject
-    lateinit var baseNotificationBuilder:NotificationCompat.Builder
+    lateinit var baseNotificationBuilder: NotificationCompat.Builder
 
-    lateinit var curNotificationBuilder:NotificationCompat.Builder
+    lateinit var curNotificationBuilder: NotificationCompat.Builder
 
     companion object {
         val timeRunInMillis = MutableLiveData<Long>()
@@ -141,6 +140,17 @@ class TrackingService : LifecycleService() {
         }
     }
 
+
+    private fun killService() {
+        serviceKill = true
+        isFirstRun = true
+
+        pauseService()
+        postInitialValues()
+        stopForeground(true)
+        stopSelf()
+    }
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
 
         intent?.let {
@@ -160,6 +170,7 @@ class TrackingService : LifecycleService() {
                 }
                 ACTION_STOP_SERVICE -> {
                     Timber.d("Stop Service")
+                    killService()
                 }
             }
         }
@@ -215,9 +226,12 @@ class TrackingService : LifecycleService() {
         startForeground(NOTIFICATION_ID, baseNotificationBuilder.build())
 
         timeRunInSeconds.observe(this, Observer {
-            val notification =curNotificationBuilder
-                .setContentText(TrackingUtility.getFormattedStopWatchTime(it *1000))
-            notificationManager.notify(NOTIFICATION_ID,notification.build())
+
+            if (!serviceKill) {
+                val notification = curNotificationBuilder
+                    .setContentText(TrackingUtility.getFormattedStopWatchTime(it * 1000))
+                notificationManager.notify(NOTIFICATION_ID, notification.build())
+            }
         })
     }
 
@@ -245,10 +259,11 @@ class TrackingService : LifecycleService() {
             set(curNotificationBuilder, ArrayList<NotificationCompat.Action>())
         }
 
+        if (!serviceKill){
             curNotificationBuilder = baseNotificationBuilder
                 .addAction(R.drawable.ic_pause_black_24dp, notificationActionText, pendingIntent)
             notificationManager.notify(NOTIFICATION_ID, curNotificationBuilder.build())
-
+        }
     }
 
 
